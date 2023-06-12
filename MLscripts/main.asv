@@ -1,0 +1,372 @@
+%% MAIN START HEADER
+
+global Blues Yellows Balls Rules FieldInfo RefState RefCommandForTeam RefPartOfFieldLeft RP PAR Modul activeAlgorithm obstacles gameStatus scenario
+global timerStatus t ballSeenFlag stopFlag countBalls findAllRobotsFlag n sequenceLen points passCount passStatus
+
+if isempty(RP)
+    addpath tools RPtools MODUL
+end
+
+%
+
+mainHeader();
+%MAP();
+
+if (RP.Pause) 
+    return;
+end
+
+zMain_End=RP.zMain_End;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%PAR.HALF_FIELD=-1;
+%PAR.MAP_X=4000;
+%PAR.MAP_Y=3000;
+%PAR.RobotSize=200;
+%PAR.KICK_DIST=200;
+%PAR.DELAY=0.15;
+%PAR.WhellR=5;
+%PAR.LGate.X=-2000;
+%PAR.RGate.X=2000;
+%PAR.BorotArm=225;
+
+%% CONTRIL BLOCK
+
+robotIDA = 2;
+
+robotID = 3;
+
+global timer
+if isempty(timer)
+    timer = cputime;
+end
+
+global timerA
+if isempty(timerA)
+    timerA = cputime;
+end
+
+
+global timerKICK
+if isempty(timerKICK)
+    timerKICK = cputime;
+end
+
+
+KeeperCoords;
+rAngleA = RP.Blue(robotIDA).ang;
+XBA = RP.Blue(robotIDA).x + BX;
+YBA = RP.Blue(robotIDA).y + BY; 
+XBLA = XBA * cos(rAngleA) + YBA * sin(rAngleA);
+YBLA = XBA * sin(rAngleA) - YBA * cos(rAngleA);
+angleToBallA = atan2(-XBLA, YBLA);
+angleToBallA = (3.14/2) - angleToBallA;
+
+attacker;
+disp(stateA);
+
+XA = RP.Blue(robotIDA).x - ROBOT_GO_X;
+YA = RP.Blue(robotIDA).y - ROBOT_GO_Y;
+XAL = XA * cos(rAngleA) + YA*sin(rAngleA);
+YAL = XA * sin(rAngleA) - YA*cos(rAngleA);
+
+if angleToBallA < 4.6 && angleToBallA > 1.5 && stateA ~= 0
+    stateA = 0;
+end
+
+if angleToBallA < 1.5 && stateA == 0
+    stateA = 1;
+end
+
+
+XGBA = RP.Blue(robotIDA).x - 0;
+YGBA = RP.Blue(robotIDA).y - 0;
+XGBLA = XGBA * cos(rAngleA) + YGBA * sin(rAngleA);
+YGBLA = XGBA * sin(rAngleA) - YGBA * cos(rAngleA);
+angleToGoalBA = atan2(-XGBLA, YGBLA);
+angleToGoalBA = (3*3.14/2) - angleToGoalBA;
+
+
+
+if angleToGoalBA > 3.14
+    angleToGoalBA = angleToGoalBA - 6.28;
+end
+
+if angleToGoalBA < -3.14
+    angleToGoalBA = angleToGoalBA + 6.28;
+end
+
+speedRA = min(abs(angleToGoalBA)*4, 15) * sign(angleToGoalBA);
+%toAngleA = atan2(-XAL, YAL);
+%toAngleA = (3.14/2) - toAngleA;
+
+global IAX
+if isempty(IAX)
+    IAX = 0;
+end
+
+global IAY
+if isempty(IAY)
+    IAY = 0;
+end
+
+global XAL_OLD
+if isempty(XAL_OLD)
+    XAL_OLD = 0;
+end
+
+global YAL_OLD
+if isempty(YAL_OLD)
+    YAL_OLD = 0;
+end
+
+
+
+
+PAX = XAL * -0.1;
+PAY = YAL * -0.2;
+IAX = IAX - XAL * (cputime - timerA) * 0.01;
+IAY = IAY - YAL * (cputime - timerA) * 0.01;
+timerA = cputime;
+
+if abs(XA) < 10 
+    IAX = 0;
+end
+
+if abs(YA) < 10
+   IAY = 0; 
+end
+
+IAX = sign(IAX) * min(abs(IAX), 8);
+IAY = sign(IAY) * min(abs(IAY), 5);
+
+DAX = (XAL - XAL_OLD) * -0;
+DAY = (YAL - YAL_OLD) * -0;
+
+XAL_OLD = XAL;
+YAL_OLD = YAL;
+
+speedXA = PAX  + IAX;
+speedYA = PAY  + IAY;
+%disp(toAngle);
+
+if ~RP.Blue(robotIDA).I  
+    speedXA = 0;
+    speedYA = 0;
+end
+
+speedXA = sign(speedXA) * min(abs(speedXA)*1, 40);
+speedYA = sign(speedYA) * min(abs(speedYA)*1, 40);   
+if (sqrt(XA*XA + YA*YA) < 60) && stateA ~= 3
+    stateA = stateA + 1;
+    if stateA == 3
+        timerKICK = cputime;
+    end
+    
+    if stateA >= 4
+        stateA = 0;
+    end
+elseif stateA == 3 && cputime - timerKICK > 0.7
+    stateA = 0;    
+end
+if(~isempty(RP.Ball.I) && RP.Ball.I && RP.Ball.x > -4500 && RP.Ball.x < 0 && RP.Ball.y > -2000 && RP.Ball.y < 2000)
+    RP.Blue(robotIDA).rul = Crul(speedXA,speedYA,0,speedRA*0.8,kekUP*10);
+else
+    RP.Blue(robotIDA).rul = Crul(0,0,0,speedRA*0.8,0);
+end
+%RP.Blue(robotIDA).rul = Crul(0,0,0,0,5);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+global BUFIT
+if isempty(BUFIT)
+    BUFIT = 1;
+end
+
+global BUF
+if isempty(BUF)
+    BUF = [[0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]; [0, 0]];
+end
+
+if ~isempty(RP.Ball.I) && RP.Ball.I && abs(BX) < 4000 && norm([RP.Ball.x, RP.Ball.y] - BUF(mod(BUFIT + 8, 10) + 1, :)) > 0.001
+    BUF(BUFIT, 1) = RP.Ball.x;
+    BUF(BUFIT, 2) = RP.Ball.y;
+    BUFIT = BUFIT + 1;
+    if BUFIT == 11
+        BUFIT = 1; 
+    end    
+end
+disp(BUF)
+
+%lineCoeffs = [0, 0];
+lineCoeffs = polyfit(BUF(:, 1), BUF(:, 2), 1);
+%disp(lineCoeffs)
+KY = KX * lineCoeffs(1) + lineCoeffs(2);
+if KY > 1000 
+    KY = 1000;
+end
+
+if KY < -1000 
+    KY = -1000;
+end
+disp(KY)
+
+rAngle = RP.Blue(robotID).ang;
+
+X = RP.Blue(robotID).x - KX;
+Y = RP.Blue(robotID).y - KY;
+XL = X * cos(rAngle) + Y*sin(rAngle);
+YL = X * sin(rAngle) - Y*cos(rAngle);
+
+toAngle = atan2(-XL, YL);
+toAngle = (3.14/2) - toAngle;
+
+
+
+global MYCHX
+if isempty(MYCHX)
+    MYCHX = 0;
+end
+global MYCHY
+if isempty(MYCHY)
+    MYCHY = 0;
+end
+
+if ~isempty(RP.Ball.I)&& RP.Ball.I
+    MYCHX = -RP.Ball.x;
+    MYCHY = -RP.Ball.y;  
+end
+
+XKP = RP.Blue(robotID).x - MYCHX;
+YKP = RP.Blue(robotID).y + MYCHY; 
+XKPL = XKP * cos(rAngle) + YKP * sin(rAngle);
+YKPL = XKP * sin(rAngle) - YKP * cos(rAngle);
+angleToKP = atan2(-XKPL, YKPL);
+angleToKP = (3.14/2) - angleToKP;
+
+
+
+
+XGB = RP.Blue(robotID).x + 4500;
+YGB = RP.Blue(robotID).y - 0;
+XGBL = XGB * cos(rAngle) + YGB * sin(rAngle);
+YGBL = XGB * sin(rAngle) - YGB * cos(rAngle);
+angleToGoalB = atan2(-XGBL, YGBL);
+angleToGoalB = (3.14/2) - angleToGoalB;
+
+
+
+
+% XBL = XB * cos(rAngle) + YB * sin(rAngle);
+% YBL = XB * sin(rAngle) - YB * cos(rAngle);
+% angleToBall = atan2(-XBL, YBL);
+% angleToBall = (3.14/2) - angleToBall;
+
+
+
+%disp(RP.Ball.x);
+global IX
+if isempty(IX)
+    IX = 0;
+end
+
+global IY
+if isempty(IY)
+    IY = 0;
+end
+
+global XL_OLD
+if isempty(XL_OLD)
+    XL_OLD = 0;
+end
+
+global YL_OLD
+if isempty(YL_OLD)
+    YL_OLD = 0;
+end
+
+
+PX = XL * -0.15;
+PY = YL * -0.1;
+IX = IX - XL * (cputime - timer) * 0.001;
+IY = IY - YL * (cputime - timer) * 0.001;
+timer = cputime;
+
+if abs(X) < 10 
+    IX = 0;
+end
+
+if abs(Y) < 10
+   IY = 0; 
+end
+
+IX = sign(IX) * min(abs(IX), 8);
+IY = sign(IY) * min(abs(IY), 5);
+
+DX = (XL - XL_OLD) * -0;
+DY = (YL - YL_OLD) * -0;
+
+XL_OLD = XL;
+YL_OLD = YL;
+
+speedX = PX  + IX + DX;
+speedY = PY  + IY + DY;
+%disp(toAngle);
+if abs(X) < 30 && abs(Y) < 30
+    speedX = 0;
+    speedY = 0;
+end
+
+if ~RP.Blue(robotID).I  
+    speedX = 0;
+    speedY = 0;
+end
+
+% 
+% if angleToBall > 3.14
+%     angleToBall = angleToBall - 6.28;
+% end
+% 
+% if angleToBall < -3.14
+%     angleToBall = angleToBall + 6.28;
+% end
+
+
+if angleToKP > 3.14
+    angleToKP = angleToKP - 6.28;
+end
+
+if angleToKP < -3.14
+    angleToKP = angleToKP + 6.28;
+end
+
+speedR = min(abs(angleToKP)*3, 20) * sign(angleToKP);
+%disp(IX)
+speedX = sign(speedX) * min(abs(speedX)*3, 50);
+speedY = sign(speedY) * min(abs(speedY)*3, 50);    
+if(~isempty(RP.Ball.I) && RP.Ball.I && RP.Ball.x > -4500 && RP.Ball.x < 0 && RP.Ball.y > -2000 && RP.Ball.y < 2000)
+    RP.Blue(robotID).rul = Crul(speedX*1,speedY*1,0,speedR * 0.8,0);
+else
+    RP.Blue(robotID).rul = Crul(0,0,0,speedR * 1.0,0);
+end
+
+%RP.Blue(robotID).rul = Crul(0,0,0,5,0);
+%disp([speedX, speedY]);
+%% END CONTRIL BLOCK
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% MAIN END
+
+%Rules
+
+zMain_End = mainEnd();
