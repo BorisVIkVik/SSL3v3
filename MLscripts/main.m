@@ -44,8 +44,8 @@ robotID = 4;
 robotIDUP = 10;
 robotIDAUP = 12;
 
-robotIDP = !;
-robotIDPUP = !;
+robotIDP = 1;
+robotIDPUP = 1;
 
 global timer
 if isempty(timer)
@@ -447,8 +447,8 @@ robotIDY = 8;
 robotIDYUP = 13;
 robotIDAYUP = 15;
 
-robotIDP = !;
-robotIDPUP = !;
+robotIDPY = 1;
+robotIDPUPY = 1;
 
 attCY;
 KeY;
