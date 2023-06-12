@@ -1,4 +1,5 @@
 PLX = 1400;
+PLY = 0;
 GX = 2000;
 GY = 0;
 if RP.Ball.I
